@@ -48,6 +48,18 @@ func (receiver *GatewayDB) GetUserListByCondition(
 	return
 }
 
+func (receiver *GatewayDB) CreateUser(
+	ctx context.Context,
+	newUser groupObject.User,
+) (
+	createdUser groupObject.User,
+	err error,
+) {
+	createdUser, err = receiver.ToPostgres.CreateUser(ctx, newUser)
+
+	return
+}
+
 // UpdateUser ...
 func (receiver *GatewayDB) UpdateUser(
 	ctx context.Context,

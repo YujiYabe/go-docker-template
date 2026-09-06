@@ -235,6 +235,18 @@ func (receiver *fakePostgres) GetUserListByCondition(
 	return
 }
 
+func (receiver *fakePostgres) CreateUser(
+	_ context.Context,
+	_ groupObject.User,
+) (
+	createdUser groupObject.User,
+	err error,
+) {
+	createdUser, err = groupObject.User{}, receiver.err
+
+	return
+}
+
 func (receiver *fakePostgres) UpdateUser(
 	_ context.Context,
 	_ groupObject.User,

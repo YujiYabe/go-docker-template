@@ -20,6 +20,8 @@ components:
   schemas:
     User:
       $ref: './components/schemas/User.yaml'
+    UserCreate:
+      $ref: './components/schemas/UserCreate.yaml'
     Error:
       $ref: './components/schemas/Error.yaml'
     ValidationWordRule:

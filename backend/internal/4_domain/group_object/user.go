@@ -185,6 +185,30 @@ func (receiver User) EnsureReadyToUpdate() (
 	return
 }
 
+func (receiver User) EnsureReadyToCreate() (
+	err error,
+) {
+	if receiver.HasIdentity() {
+		err = fmt.Errorf("new user must not have identity")
+
+		return
+	}
+	if !receiver.HasName() {
+		err = fmt.Errorf("user name is required")
+
+		return
+	}
+	if !receiver.HasEmail() {
+		err = fmt.Errorf("user email is required")
+
+		return
+	}
+
+	err = nil
+
+	return
+}
+
 func (receiver *User) Rename(
 	value *string,
 	nameBlacklist ...[]string,

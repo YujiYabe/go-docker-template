@@ -57,6 +57,53 @@ func (receiver *useCase) GetUserListByCondition(
 	return
 }
 
+func (receiver *useCase) CreateUser(
+	ctx context.Context,
+	newUser groupObject.User,
+) (
+	createdUser groupObject.User,
+	err error,
+) {
+	if err = ensureContextReady(ctx, "CreateUser"); err != nil {
+		return
+	}
+	if err = newUser.EnsureReadyToCreate(); err != nil {
+		err = fmt.Errorf("CreateUser: %w", err)
+
+		return
+	}
+
+	nameBlacklist, err := receiver.ToGatewayDB.GetValidationWords(
+		ctx,
+		validationWordRuleTargetName,
+		true,
+	)
+	if err != nil {
+		err = fmt.Errorf("CreateUser: %w", err)
+
+		return
+	}
+	if err = newUser.ValidateNameBlacklist(nameBlacklist); err != nil {
+		err = fmt.Errorf("CreateUser: %w", err)
+
+		return
+	}
+
+	err = receiver.ToGatewayDB.RunInTransaction(
+		ctx,
+		func(txCtx context.Context) (transactionErr error) {
+			createdUser, transactionErr = receiver.ToGatewayDB.CreateUser(txCtx, newUser)
+
+			return
+		},
+	)
+	if err != nil {
+		err = fmt.Errorf("CreateUser: %w", err)
+	}
+
+	return
+}
+
 func (receiver *useCase) UpdateUser(
 	ctx context.Context,
 	newUser groupObject.User,

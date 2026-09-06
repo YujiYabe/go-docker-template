@@ -45,6 +45,14 @@ type (
 			err error,
 		)
 
+		CreateUser(
+			ctx context.Context,
+			newUser groupObject.User,
+		) (
+			createdUser groupObject.User,
+			err error,
+		)
+
 		FetchAccessToken(
 			ctx context.Context,
 			credential groupObject.Credential,

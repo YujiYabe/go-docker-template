@@ -11,6 +11,7 @@ import (
 
 type fakeGatewayDB struct {
 	runInTransactionCalled     bool
+	createUserCalled           bool
 	updateUserCalled           bool
 	updateEmploymentCalled     bool
 	getListCalled              bool
@@ -22,11 +23,27 @@ type fakeGatewayDB struct {
 	calls                      []string
 	getListErr                 error
 	getByConditionErr          error
+	createUserErr              error
 	updateUserErr              error
 	updateUserEmploymentErr    error
 	getValidationWordsErr      error
 	validationWordUpdateErr    error
 	validationWords            []string
+	createdUser                groupObject.User
+}
+
+func (receiver *fakeGatewayDB) CreateUser(
+	_ context.Context,
+	_ groupObject.User,
+) (
+	createdUser groupObject.User,
+	err error,
+) {
+	receiver.createUserCalled = true
+	receiver.calls = append(receiver.calls, "create_user")
+	createdUser, err = receiver.createdUser, receiver.createUserErr
+
+	return
 }
 
 func (receiver *fakeGatewayDB) RunInTransaction(

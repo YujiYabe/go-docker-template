@@ -33,6 +33,18 @@ func (receiver *controller) GetUserListByCondition(
 	return
 }
 
+func (receiver *controller) CreateUser(
+	ctx context.Context,
+	newUser groupObject.User,
+) (
+	createdUser groupObject.User,
+	err error,
+) {
+	createdUser, err = receiver.UseCase.CreateUser(ctx, newUser)
+
+	return
+}
+
 func (receiver *controller) FetchAccessToken(
 	ctx context.Context,
 	credential groupObject.Credential,

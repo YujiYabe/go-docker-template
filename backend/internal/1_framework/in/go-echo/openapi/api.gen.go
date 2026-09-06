@@ -24,6 +24,12 @@ type User struct {
 	Name  string `json:"name"`
 }
 
+// UserCreate defines model for UserCreate.
+type UserCreate struct {
+	Email string `json:"email"`
+	Name  string `json:"name"`
+}
+
 // ValidationWordRule defines model for ValidationWordRule.
 type ValidationWordRule struct {
 	IsBlacklist bool   `json:"isBlacklist"`
@@ -66,7 +72,7 @@ type V1ValidationWordRulesGetParams struct {
 }
 
 // V1UsersPostJSONRequestBody defines body for V1UsersPost for application/json ContentType.
-type V1UsersPostJSONRequestBody = User
+type V1UsersPostJSONRequestBody = UserCreate
 
 // V1ValidationWordRulesDeleteJSONRequestBody defines body for V1ValidationWordRulesDelete for application/json ContentType.
 type V1ValidationWordRulesDeleteJSONRequestBody = ValidationWordRuleDelete

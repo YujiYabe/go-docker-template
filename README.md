@@ -82,7 +82,7 @@ OpenAPI定義は[`openapi.yaml`](backend/internal/1_framework/in/go-echo/openapi
 | --- | --- | --- | --- |
 | `GET` | `/v1/health` | ヘルスチェック | 実装済み |
 | `GET` | `/v1/users` | 名前またはメールアドレスでユーザーを検索 | 実装済み |
-| `POST` | `/v1/users` | ユーザー作成のレスポンス例 | 仮実装 |
+| `POST` | `/v1/users` | ユーザーを作成 | 実装済み |
 | `GET` | `/v1/validation-word-rules` | バリデーションルール一覧 | 実装済み |
 | `POST` | `/v1/validation-word-rules` | バリデーションルール追加 | 実装済み |
 | `PUT` | `/v1/validation-word-rules` | バリデーションルール更新 | 実装済み |
@@ -231,7 +231,6 @@ HTTP middlewareで`RequestStartTime`、`TraceID`、`ClientIP`、`UserAgent`、`U
 
 ## 現時点の制約・未実装
 
-- `POST /v1/users`はIDを固定値で返す仮実装で、DBへ保存しない
 - KafkaとLocalStackのDocker Composeサービスはコメントアウトされている
 - Pub/Sub producerの初期化とconsumerの起動は無効化されており、`GET /v1/to-pubsub`は利用できない
 - Auth0用handlerは実装例があるが、現在のHTTP serverにはroute登録されていない

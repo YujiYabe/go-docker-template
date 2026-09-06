@@ -118,6 +118,41 @@ func TestUserEnsureReadyToUpdateRequiresLifecycleState(
 	}
 }
 
+func TestUserEnsureReadyToCreateRequiresDraftWithNameAndEmail(
+	t *testing.T,
+) {
+	validUser, err := NewUser(&NewUserArgs{
+		Name:  stringPointer("alice"),
+		Email: stringPointer("alice@example.com"),
+	})
+	if err != nil {
+		t.Fatalf("failed to create draft user: %v", err)
+	}
+	if err := validUser.EnsureReadyToCreate(); err != nil {
+		t.Fatalf("expected create-ready user, got: %v", err)
+	}
+
+	persistedUser, err := ReconstructUser(&NewUserArgs{
+		ID:    intPointer(1),
+		Name:  stringPointer("alice"),
+		Email: stringPointer("alice@example.com"),
+	})
+	if err != nil {
+		t.Fatalf("failed to reconstruct user: %v", err)
+	}
+	if err := persistedUser.EnsureReadyToCreate(); err == nil {
+		t.Fatal("expected identity validation error")
+	}
+
+	missingName, err := NewUser(&NewUserArgs{Email: stringPointer("alice@example.com")})
+	if err != nil {
+		t.Fatalf("failed to create partial draft: %v", err)
+	}
+	if err := missingName.EnsureReadyToCreate(); err == nil {
+		t.Fatal("expected name validation error")
+	}
+}
+
 func TestReconstructUserListRequiresIdentityForEachUser(
 	t *testing.T,
 ) {
