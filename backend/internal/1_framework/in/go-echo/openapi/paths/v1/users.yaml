@@ -36,13 +36,17 @@ post:
     content:
       application/json:
         schema:
-          $ref: '#/components/schemas/User'
-          # $ref: '../../components/schemas/User.yaml'
+          $ref: '#/components/schemas/UserCreate'
   responses:
     '201':
-      description: User created successfully'
+      description: User created successfully
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/User'
-            # $ref: '../../components/schemas/User.yaml'
+    '400':
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

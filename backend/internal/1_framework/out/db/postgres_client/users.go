@@ -141,6 +141,45 @@ func (receiver *PostgresClient) GetUser(
 	return
 }
 
+func (receiver *PostgresClient) CreateUser(
+	ctx context.Context,
+	newUser groupObject.User,
+) (
+	createdUser groupObject.User,
+	err error,
+) {
+	if err = newUser.EnsureReadyToCreate(); err != nil {
+		return
+	}
+
+	record := models.User{
+		Email: newUser.Email().GetValue(),
+		FullName: sql.NullString{
+			String: newUser.Name().GetValue(),
+			Valid:  true,
+		},
+	}
+	if err = receiver.conn(ctx).
+		Omit("Auth0UserID", "CreatedAt", "UpdatedAt").
+		Create(&record).
+		Error; err != nil {
+		return
+	}
+
+	createdUserPointer, err := groupObject.ReconstructUser(&groupObject.NewUserArgs{
+		ID:    &record.ID,
+		Name:  stringFromNullString(record.FullName),
+		Email: &record.Email,
+	})
+	if err != nil {
+		return createdUser, err
+	}
+
+	createdUser = *createdUserPointer
+
+	return
+}
+
 func (receiver *PostgresClient) UpdateUser(
 	ctx context.Context,
 	newUser groupObject.User,

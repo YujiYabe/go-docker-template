@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -17,6 +18,7 @@ import (
 
 type fakeController struct {
 	getUserListByConditionCalled bool
+	createUserCalled             bool
 	publishTestTopicCalled       bool
 	getValidationWordsCalled     bool
 	addValidationWordCalled      bool
@@ -29,6 +31,8 @@ type fakeController struct {
 	lastOldWord                  string
 	lastNewWord                  string
 	userList                     groupObject.UserList
+	createdUser                  groupObject.User
+	createUserErr                error
 	validationWords              []string
 }
 
@@ -122,7 +126,19 @@ func TestOpenAPIE2E_V1UsersGet(
 func TestOpenAPIE2E_V1UsersPost(
 	t *testing.T,
 ) {
-	controller := &fakeController{}
+	name := "Bob"
+	email := "bob@example.com"
+	userID := 5
+	createdUser, err := groupObject.ReconstructUser(&groupObject.NewUserArgs{
+		ID:    &userID,
+		Name:  &name,
+		Email: &email,
+	})
+	if err != nil {
+		t.Fatalf("failed to build created user: %v", err)
+	}
+
+	controller := &fakeController{createdUser: *createdUser}
 	echoEcho := newE2ETestEcho(t, controller)
 
 	reqBody := bytes.NewBufferString(`{"name":"Bob","email":"bob@example.com"}`)
@@ -149,8 +165,38 @@ func TestOpenAPIE2E_V1UsersPost(
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		t.Fatalf("failed to decode response body: %v", err)
 	}
-	if body.ID != 3 || body.Name != "Bob" || body.Email != "bob@example.com" {
+	if !controller.createUserCalled {
+		t.Fatal("expected CreateUser to be called")
+	}
+	if controller.lastReqUser.HasIdentity() {
+		t.Fatal("new user should not have identity before persistence")
+	}
+	if body.ID != userID || body.Name != name || body.Email != email {
 		t.Fatalf("unexpected response body: %+v", body)
+	}
+}
+
+func TestOpenAPIE2E_V1UsersPostReturnsBadRequestOnCreateFailure(
+	t *testing.T,
+) {
+	controller := &fakeController{createUserErr: errors.New("create failed")}
+	echoEcho := newE2ETestEcho(t, controller)
+	req := httptest.NewRequestWithContext(
+		context.Background(),
+		http.MethodPost,
+		"/v1/users",
+		bytes.NewBufferString(`{"name":"Bob","email":"bob@example.com"}`),
+	)
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+
+	echoEcho.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status %d, got %d: %s", http.StatusBadRequest, rec.Code, rec.Body.String())
+	}
+	if !controller.createUserCalled {
+		t.Fatal("expected CreateUser to be called")
 	}
 }
 
@@ -350,6 +396,20 @@ func (receiver *fakeController) GetUserListByCondition(
 	receiver.lastReqUser = reqUser
 
 	resUserList, err = receiver.userList, nil
+
+	return
+}
+
+func (receiver *fakeController) CreateUser(
+	_ context.Context,
+	newUser groupObject.User,
+) (
+	createdUser groupObject.User,
+	err error,
+) {
+	receiver.createUserCalled = true
+	receiver.lastReqUser = newUser
+	createdUser, err = receiver.createdUser, receiver.createUserErr
 
 	return
 }

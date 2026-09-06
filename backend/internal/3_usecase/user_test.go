@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	domain "backend/internal/4_domain"
+	groupObject "backend/internal/4_domain/group_object"
 )
 
 func TestGetUserListWrapsGatewayError(
@@ -94,6 +95,94 @@ func TestGetUserListByConditionGatewayCases(
 				t.Fatal("gateway should be called")
 			}
 		})
+	}
+}
+
+func TestCreateUserValidatesAndRunsInTransaction(
+	t *testing.T,
+) {
+	createdUser := newTestUser(t, intPointer(5), stringPointer("alice"), stringPointer("alice@example.com"))
+	gatewayDB := &fakeGatewayDB{createdUser: createdUser}
+	useCase := NewUseCase(nil, gatewayDB, &fakeGatewayExternal{})
+	newUser := newTestUser(t, nil, stringPointer("alice"), stringPointer("alice@example.com"))
+
+	result, err := useCase.CreateUser(context.Background(), newUser)
+	if err != nil {
+		t.Fatalf("expected create success, got: %v", err)
+	}
+	if result.ID().GetValue() != 5 {
+		t.Fatalf("expected generated ID 5, got: %d", result.ID().GetValue())
+	}
+	if !gatewayDB.getValidationWordsCalled {
+		t.Fatal("validation words should be fetched")
+	}
+	if !gatewayDB.runInTransactionCalled || !gatewayDB.createUserCalled {
+		t.Fatal("create should run inside transaction")
+	}
+}
+
+func TestCreateUserRejectsInvalidLifecycleAndBlacklistedName(
+	t *testing.T,
+) {
+	tests := []struct {
+		name            string
+		user            groupObject.User
+		validationWords []string
+	}{
+		{
+			name: "persisted user",
+			user: newTestUser(
+				t,
+				intPointer(1),
+				stringPointer("alice"),
+				stringPointer("alice@example.com"),
+			),
+		},
+		{
+			name: "blacklisted name",
+			user: newTestUser(
+				t,
+				nil,
+				stringPointer("root user"),
+				stringPointer("alice@example.com"),
+			),
+			validationWords: []string{"root"},
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			gatewayDB := &fakeGatewayDB{validationWords: testCase.validationWords}
+			useCase := NewUseCase(nil, gatewayDB, &fakeGatewayExternal{})
+
+			_, err := useCase.CreateUser(context.Background(), testCase.user)
+			if err == nil {
+				t.Fatal("expected validation error")
+			}
+			if gatewayDB.runInTransactionCalled || gatewayDB.createUserCalled {
+				t.Fatal("gateway create should not run after validation failure")
+			}
+		})
+	}
+}
+
+func TestCreateUserWrapsGatewayError(
+	t *testing.T,
+) {
+	createErr := errors.New("insert failed")
+	gatewayDB := &fakeGatewayDB{createUserErr: createErr}
+	useCase := NewUseCase(nil, gatewayDB, &fakeGatewayExternal{})
+	newUser := newTestUser(t, nil, stringPointer("alice"), stringPointer("alice@example.com"))
+
+	_, err := useCase.CreateUser(context.Background(), newUser)
+	if !errors.Is(err, createErr) {
+		t.Fatalf("expected wrapped gateway error, got: %v", err)
+	}
+	if !strings.Contains(err.Error(), "CreateUser") {
+		t.Fatalf("expected usecase name in error, got: %v", err)
+	}
+	if !gatewayDB.runInTransactionCalled || !gatewayDB.createUserCalled {
+		t.Fatal("gateway create should run inside transaction")
 	}
 }
 

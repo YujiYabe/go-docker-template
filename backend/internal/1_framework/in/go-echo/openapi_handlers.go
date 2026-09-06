@@ -35,19 +35,14 @@ func (receiver *ServerInterfaceImpl) V1UsersGet(
 
 // V1UsersPost は /v1/users POST エンドポイントの実装
 func (receiver *ServerInterfaceImpl) V1UsersPost(
-	ctx echo.Context,
+	echoContext echo.Context,
 ) (
 	err error,
 ) {
-	var user openapi.User
-	if err := ctx.Bind(&user); err != nil {
-		return ctx.JSON(
-			http.StatusBadRequest,
-			map[string]string{"error": "Invalid request"},
-		)
-	}
-	user.Id = 3 // 仮に新しいユーザーIDを割り当て
-	err = ctx.JSON(http.StatusCreated, user)
+	err = v1users.Post(
+		echoContext,
+		receiver.Controller,
+	)
 
 	return
 }
